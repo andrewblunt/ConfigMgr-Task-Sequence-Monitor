@@ -1,7 +1,5 @@
 <Config>
   <sql>sqlserver</sql>
   <db>cm_db1</db>
-  <mdt>False</mdt>
-  <mdturl>http://&lt;MDTServer&gt;:9801/MDTMonitorData/Computers</mdturl>
   <dtformat>W. Europe Standard Time</dtformat>
 </Config>

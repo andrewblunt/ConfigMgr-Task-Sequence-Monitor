@@ -18,18 +18,17 @@
         <TabControl HorizontalAlignment="Left" Height="243" Margin="10,10,0,0" VerticalAlignment="Top" Width="497">
             <TabItem x:Name="SettingsTab" Header="Settings">
                 <Grid Background="#FFE5E5E5" Margin="0,0,0,-2">
-                    <Label Content="SQL Server:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-                    <Label Content="Database:" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
-                    <Label Content="MDT Monitoring URL:" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="SQLServer" HorizontalAlignment="Left" Height="23" Margin="140,10,0,0" TextWrapping="Wrap" Text="&lt;SQLServer\Instance&gt;" VerticalAlignment="Top" Width="206" VerticalContentAlignment="Center"/>
-                    <TextBox x:Name="Database" HorizontalAlignment="Left" Height="23" Margin="140,41,0,0" TextWrapping="Wrap" Text="&lt;Database&gt;" VerticalAlignment="Top" Width="87" VerticalContentAlignment="Center"/>
-                    <TextBox x:Name="MDTURL" HorizontalAlignment="Left" Height="23" Margin="140,72,0,0" TextWrapping="Wrap" Text="http://&lt;MDTServer&gt;:9801/MDTMonitorData/Computers" VerticalAlignment="Top" Width="341" VerticalContentAlignment="Center"/>
-                    <Button x:Name="ConnectSQL" Content="Connect SQL" HorizontalAlignment="Left" Margin="381,10,0,0" VerticalAlignment="Top" Width="100" Height="29"/>
-                    <Label Content="MDT:" HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="MDT" HorizontalAlignment="Left" Margin="140,107,0,0" VerticalAlignment="Top" Width="206"/>
-                    <Label Content="Display Date/Time in:" HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="DTFormat" HorizontalAlignment="Left" Margin="140,134,0,0" VerticalAlignment="Top" Width="206"/>
-					<Label x:Name="Runasadmin" Content="Note:  Please run the application with right permission to the&#xD;&#xA;script directory to save these settings!" HorizontalAlignment="Left" Margin="140,156,0,0" VerticalAlignment="Top" Height="43" Visibility="Hidden"/>
+                    <Label Content="SQL Server:" HorizontalAlignment="Left" Margin="10,15,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="SQLServer" HorizontalAlignment="Left" Height="23" Margin="140,15,0,0" TextWrapping="Wrap" Text="&lt;SQLServer\Instance&gt;" VerticalAlignment="Top" Width="206" VerticalContentAlignment="Center"/>
+                    <Button x:Name="ConnectSQL" Content="Connect SQL" HorizontalAlignment="Left" Margin="370,15,0,0" VerticalAlignment="Top" Width="100" Height="29"/>
+
+                    <Label Content="Database:" HorizontalAlignment="Left" Margin="10,55,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="Database" HorizontalAlignment="Left" Height="23" Margin="140,55,0,0" TextWrapping="Wrap" Text="&lt;Database&gt;" VerticalAlignment="Top" Width="206" VerticalContentAlignment="Center"/>
+
+                    <Label Content="Display Date/Time in:" HorizontalAlignment="Left" Margin="10,95,0,0" VerticalAlignment="Top"/>
+                    <ComboBox x:Name="DTFormat" HorizontalAlignment="Left" Margin="140,95,0,0" VerticalAlignment="Top" Width="206"/>
+
+                    <Label x:Name="Runasadmin" Content="Note: Please run the application with right permission to the&#xD;&#xA;script directory to save these settings!" HorizontalAlignment="Left" Margin="140,140,0,0" VerticalAlignment="Top" Height="43" Visibility="Hidden"/>
                 </Grid>
             </TabItem>
             <TabItem x:Name="ReportTab" Header="Summary Report">
@@ -51,17 +50,21 @@
                     <RichTextBox HorizontalAlignment="Left" Height="171" VerticalAlignment="Top" Width="491" IsDocumentEnabled="True" IsReadOnly="True" IsReadOnlyCaretVisible="True">
                         <FlowDocument>
                             <Paragraph>
-                                <Run Text="ConfigMgr Task Sequence Monitor" FontFamily="Calibri" FontSize="18"/>
-                                <Run FontFamily="Calibri" FontSize="13" Text="is a WPF application coded in PowerShell.  It enables you to monitor or review task sequence executions in System Center Configuration Manager, and where MDT integration is enabled, link data from MDT with Configuration Manager for enhanced monitoring of ZTI OS deployments."/>
-                            </Paragraph>
-                            <Paragraph>
-                                <Run FontFamily="Calibri" FontSize="13" Text="Documentation can be found on my blog:" />
-                                <Hyperlink x:Name="Link1" NavigateUri="http://smsagent.wordpress.com/tools/configmgr-task-sequence-monitor/">smsagent.wordpress.com</Hyperlink>
+                                <Run Text="ConfigMgr Task Sequence Monitor" FontFamily="Calibri" FontSize="18" FontWeight="Bold"/>
                                 <LineBreak />
-                                <Run FontFamily="Calibri" FontSize="13" Text="originally by Trevor Jones, enhanced by Stephan" />
+                                <Run FontFamily="Calibri" FontSize="13" Text="A WPF application coded in PowerShell to monitor and review task sequence executions in System Center Configuration Manager (ConfigMgr / SCCM)."/>
                             </Paragraph>
                             <Paragraph>
-                                <Run FontFamily="Calibri" FontSize="13" Text="Version 1.7" />
+                                <Run FontFamily="Calibri" FontSize="13" Text="Original creator: Trevor Jones (" />
+                                <Hyperlink x:Name="Link1" NavigateUri="http://smsagent.wordpress.com/tools/configmgr-task-sequence-monitor/">SMSAgent</Hyperlink>
+                                <Run FontFamily="Calibri" FontSize="13" Text=")" />
+                                <LineBreak />
+                                <Run FontFamily="Calibri" FontSize="13" Text="Forked &amp; enhanced by Stephan (" />
+                                <Hyperlink x:Name="Link2" NavigateUri="https://github.com/stephannn/ConfigMgr-Task-Sequence-Monitor">GitHub Repository</Hyperlink>
+                                <Run FontFamily="Calibri" FontSize="13" Text=")" />
+                            </Paragraph>
+                            <Paragraph>
+                                <Run FontFamily="Calibri" FontSize="13" FontWeight="Bold" Text="Version 1.9" />
                             </Paragraph>
                         </FlowDocument>
                     </RichTextBox>
