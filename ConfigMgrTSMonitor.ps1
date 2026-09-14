@@ -66,6 +66,14 @@ if (Test-Path -Path $mahAppsPathLocal)
 
 #endregion
 
+#region Constants
+# ConfigMgr Status Message ID for skipped/disabled task sequence steps
+$script:SkippedStepStatusMsgID = '11128'
+
+# Fallback sentinel value when exit code filtering is disabled
+$script:NoExitCodeFilterSentinel = '999999999999999999999999'
+#endregion
+
 #region GUI and Variables
 ### Main Window ###
 # GUI
@@ -76,7 +84,11 @@ $BuildExtVersionSql = @()
 $buildExtCsvPath = Join-Path $currentLocation "BuildExt.csv"
 if (Test-Path $buildExtCsvPath) {
     Import-Csv -Path $buildExtCsvPath -Delimiter ";" -Header Build, Version | ForEach-Object {
-        $BuildExtVersionSql += "WHEN sys.BuildExt like '$($_.Build)' THEN '$($_.Version)'"
+        $buildEscaped = $_.Build -replace "'", "''"
+        $versionEscaped = $_.Version -replace "'", "''"
+        if (-not [string]::IsNullOrWhiteSpace($buildEscaped)) {
+            $BuildExtVersionSql += "WHEN sys.BuildExt like '$buildEscaped' THEN '$versionEscaped'"
+        }
     }
 }
 
@@ -85,13 +97,16 @@ $reader = (New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $xaml)
 $hash.Window = [Windows.Markup.XamlReader]::Load( $reader )
 $global:PSInstances = @()
 $Global:Timezones = @()
+$hash.Results = @()
 
 $hash.TaskSequence = $hash.Window.FindName('TaskSequence')
 $hash.TimePeriod = $hash.Window.FindName('TimePeriod')
 $hash.ErrorsOnly = $hash.Window.FindName('ErrorsOnly')
 $hash.SuccessCode = $hash.Window.FindName('SuccessCode')
 $hash.DisabledSteps = $hash.Window.FindName('DisabledSteps')
+$hash.SkippedSteps = $hash.Window.FindName('SkippedSteps')
 $hash.ComputerName = $hash.Window.FindName('ComputerName')
+$hash.DeviceCount = $hash.Window.FindName('DeviceCount')
 $hash.BuildExt = $hash.Window.FindName('BuildExt')
 $hash.ActionName = $hash.Window.FindName('ActionName')
 $hash.RefreshPeriod = $hash.Window.FindName('RefreshPeriod')
@@ -144,18 +159,19 @@ $hash.ReportProgress = $hash.Window2.FindName('ReportProgress')
 $hash.Link1 = $hash.Window2.FindName('Link1')
 $hash.Link2 = $hash.Window2.FindName('Link2')
 $hash.DTFormat = $hash.Window2.FindName('DTFormat')
+$hash.GreyDisabledSteps = $hash.Window2.FindName('GreyDisabledSteps')
 
 if (Test-Path -Path $gridIco1)
 {
-    $Hash.Window2.ShowInTaskbar = $true
+    $hash.Window2.ShowInTaskbar = $true
 }
 if ($programFilesX86 -and (Test-Path -Path $gridIco2))
 {
-    $Hash.Window2.ShowInTaskbar = $true
+    $hash.Window2.ShowInTaskbar = $true
 }
 if (Test-Path -Path $gridIcoLocal)
 {
-    $Hash.Window2.ShowInTaskbar = $true
+    $hash.Window2.ShowInTaskbar = $true
 }
 
 $script:SQLServer = $hash.SQLServer.Text
@@ -219,6 +235,32 @@ $RunspacePool.Open()
 #endregion
 
 #region Functions
+
+Function Get-FilterParams 
+{
+    param (
+        $ErrorsOnly,
+        $SuccessCode,
+        $DisabledSteps
+    )
+
+    $isErrorsOnly = ($ErrorsOnly -eq 'True' -or $ErrorsOnly -eq $true)
+    $isDisabledSteps = ($DisabledSteps -eq 'True' -or $DisabledSteps -eq $true)
+
+    $ExitCode = if ($isErrorsOnly) { $SuccessCode } else { $script:NoExitCodeFilterSentinel }
+    $DisabledStep = if ($isDisabledSteps) { "''" } else { $script:SkippedStepStatusMsgID }
+
+    $ExitCodeSanitized = if ($ExitCode -eq $script:NoExitCodeFilterSentinel) { "999999999" } else { ($ExitCode -replace '[^0-9,-]', '') }
+    if ([string]::IsNullOrWhiteSpace($ExitCodeSanitized)) { $ExitCodeSanitized = "999999999" }
+
+    $DisabledStepSanitized = if ($DisabledStep -eq "''") { "''" } else { ($DisabledStep -replace '[^0-9,-]', '') }
+    if ([string]::IsNullOrWhiteSpace($DisabledStepSanitized)) { $DisabledStepSanitized = "''" }
+
+    return @{
+        ExitCodeSanitized     = $ExitCodeSanitized
+        DisabledStepSanitized = $DisabledStepSanitized
+    }
+}
 
 Function Get-DateTimeFormat 
 {
@@ -328,7 +370,7 @@ Function Get-TaskSequenceData
 
     $code = 
     {
-        param($hash,$SQLServer,$Database,$BuildExtVersionSql,$TimePeriod,$SuccessCode,$ErrorsOnly,$DisabledSteps,$ComputerName,$ActionName,$TS,$DTFormat)
+        param($hash,$SQLServer,$Database,$BuildExtVersionSql,$TimePeriod,$SuccessCode,$ExitCodeSanitized,$DisabledStepSanitized,$SkippedSteps,$GreyDisabledSteps,$ComputerName,$ActionName,$TS,$DTFormat)
 
         # Notify of data retrieval         
         $hash.Window.Dispatcher.Invoke(
@@ -337,32 +379,8 @@ Function Get-TaskSequenceData
                 $hash.DataGrid.ItemsSource = ''
         })
 
-        if ($ErrorsOnly -eq 'True' -or $ErrorsOnly -eq $true)
-        {
-            $ExitCode = $SuccessCode
-        }
-        else 
-        {
-            $ExitCode = 999999999999999999999999
-        }
-		
-		if ($DisabledSteps -eq 'True' -or $DisabledSteps -eq $true)
-        {
-            $DisabledStep = "''"
-        }
-        Else 
-        {
-            $DisabledStep = '11128'
-        }
-
-        $ExitCodeSanitized = if ($ExitCode -eq 999999999999999999999999) { "999999999" } else { ($ExitCode -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($ExitCodeSanitized)) { $ExitCodeSanitized = "999999999" }
-
         $SuccessCodeSanitized = ($SuccessCode -replace '[^0-9,-]', '')
         if ([string]::IsNullOrWhiteSpace($SuccessCodeSanitized)) { $SuccessCodeSanitized = "999999999" }
-
-        $DisabledStepSanitized = if ($DisabledStep -eq "''") { "''" } else { ($DisabledStep -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($DisabledStepSanitized)) { $DisabledStepSanitized = "''" }
         
         $compDisplayName = if ($ComputerName -is [System.Management.Automation.PSCustomObject]) { $ComputerName.DisplayName } else { $ComputerName }
         $compValue = if ($ComputerName -is [System.Management.Automation.PSCustomObject]) { $ComputerName.Value } else { $ComputerName }
@@ -505,7 +523,8 @@ Function Get-TaskSequenceData
 
                 $exTime = if ($DTFormat -eq 'UTC') { $Row.'ExecutionTime' } else { [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$Row.'ExecutionTime', [System.TimeZoneInfo]::Local) }
 
-                $isSkipped = ($Row.LastStatusMsgID -eq 11128 -or $Row.LastStatusMsgName -like '*skipped*')
+                $isSkipped = ([string]$Row.LastStatusMsgID -eq $script:SkippedStepStatusMsgID -or $Row.LastStatusMsgName -like '*skipped*')
+                $isGreyed = if ($GreyDisabledSteps -eq 'True' -or $GreyDisabledSteps -eq $true) { $isSkipped } else { $false }
 
                 [pscustomobject]@{
                     IconPath           = $iconPath
@@ -524,14 +543,15 @@ Function Get-TaskSequenceData
                     ActionOutput       = $Row.'ActionOutput'
                     Record             = $i
                     IsSkipped          = $isSkipped
+                    IsGreyed           = $isGreyed
                 }
             }
 
-            $global:Results = [Array]$ResultsList
+            $hash.Results = [Array]$ResultsList
 
-            if ($global:Results.Count -eq 1)
+            $displayResults = $hash.Results
+            if ($displayResults.Count -eq 1)
             {
-                $i++
                 $Row = $table.Rows[0]
                 $isSuccess = ($Row.ExitCode.ToString() -in $successCodeList)
                 $iconPath = if ($isSuccess) { $greenTickIconPath } else { $redCrossIconPath }
@@ -551,13 +571,19 @@ Function Get-TaskSequenceData
                     LastStatusMsgName  = ' '
                     ExitCode           = ' '
                     ActionOutput       = ' '
-                    Record             = ' '
+                    Record             = 999999
                     IsSkipped          = $false
+                    IsGreyed           = $false
                 }
-                $global:Results = [Array]($global:Results + $dummyObj)
+                $displayResults = [Array]($displayResults + $dummyObj)
             }
 
-            $FilteredResults = $global:Results | Select-Object -Property IconPath, ComputerName, GUID, 'Connection Type', BuildExt, Model0, BIOSVersion, ExecutionTime, Step, ActionName, GroupName, LastStatusMsgName, ExitCode, Record, IsSkipped
+            $FilteredResults = if ($SkippedSteps -eq 'False' -or $SkippedSteps -eq $false) {
+                [Array]($displayResults | Where-Object { -not $_.IsSkipped })
+            } else {
+                $displayResults
+            }
+            $FilteredResults = [Array]($FilteredResults | Select-Object -Property IconPath, ComputerName, GUID, 'Connection Type', BuildExt, Model0, BIOSVersion, ExecutionTime, Step, ActionName, GroupName, LastStatusMsgName, ExitCode, Record, IsSkipped, IsGreyed)
 
             $errCount = if ($errtable -and $errtable.Rows.Count -gt 0) { $errtable.Rows[0]['Count'] } else { 0 }
             
@@ -595,13 +621,19 @@ Function Get-TaskSequenceData
 	$SuccessCode = $hash.SuccessCode.Text
     $ErrorsOnly = $hash.ErrorsOnly.IsChecked
 	$DisabledSteps = $hash.DisabledSteps.IsChecked
+    $SkippedSteps = $hash.SkippedSteps.IsChecked
+    $GreyDisabledSteps = if ($null -ne $Global:GreyDisabledSteps) { $Global:GreyDisabledSteps } else { $true }
     $ComputerName = $hash.ComputerName.SelectedItem
 	$ActionName = $hash.ActionName.SelectedItem
     $TS = $hash.TaskSequence.SelectedItem
     $DTFormat = $hash.DTFormat.SelectedItem
 
+    $filterParams = Get-FilterParams -ErrorsOnly $ErrorsOnly -SuccessCode $SuccessCode -DisabledSteps $DisabledSteps
+    $ExitCodeSanitized = $filterParams.ExitCodeSanitized
+    $DisabledStepSanitized = $filterParams.DisabledStepSanitized
+
     # Create PS instance in runspace pool and execute
-    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($SuccessCode).AddArgument($ErrorsOnly).AddArgument($DisabledSteps).AddArgument($ComputerName).AddArgument($ActionName).AddArgument($TS).AddArgument($DTFormat)
+    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($SuccessCode).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($SkippedSteps).AddArgument($GreyDisabledSteps).AddArgument($ComputerName).AddArgument($ActionName).AddArgument($TS).AddArgument($DTFormat)
 
     $PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
@@ -615,11 +647,13 @@ Function Populate-ActionOutput
     $code = 
     {
         param($hash,$Record)
-        $msg = $global:Results | Where-Object { $_.Record -eq $Record } | Select-Object -First 1
-        $hash.Window.Dispatcher.Invoke(
-            [action]{
-                $hash.ActionOutput.Text = $msg.ActionOutput
-        })
+        $msg = $hash.Results | Where-Object { $_.Record -eq $Record } | Select-Object -First 1
+        if ($msg) {
+            $hash.Window.Dispatcher.Invoke(
+                [action]{
+                    $hash.ActionOutput.Text = $msg.ActionOutput
+            })
+        }
     }
 
     # Set variables from Hash table
@@ -638,31 +672,7 @@ Function Populate-ComputerNames
 
     $code = 
     {
-        param($hash,$SQLServer,$Database,$BuildExtVersionSql,$TimePeriod,$SuccessCode,$ErrorsOnly,$DisabledSteps,$TS)
-        
-        if ($ErrorsOnly -eq 'True' -or $ErrorsOnly -eq $true)
-        {
-            $ExitCode = $SuccessCode
-        }
-        else 
-        {
-            $ExitCode = 999999999999999999999999
-        }
-		
-		if ($DisabledSteps -eq 'True' -or $DisabledSteps -eq $true)
-        {
-            $DisabledStep = "''"
-        }
-        Else 
-        {
-            $DisabledStep = '11128'
-        }
-
-        $ExitCodeSanitized = if ($ExitCode -eq 999999999999999999999999) { "999999999" } else { ($ExitCode -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($ExitCodeSanitized)) { $ExitCodeSanitized = "999999999" }
-
-        $DisabledStepSanitized = if ($DisabledStep -eq "''") { "''" } else { ($DisabledStep -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($DisabledStepSanitized)) { $DisabledStepSanitized = "''" }
+        param($hash,$SQLServer,$Database,$BuildExtVersionSql,$TimePeriod,$ExitCodeSanitized,$DisabledStepSanitized,$TS)
 
         # Connect to SQL Server
         $connection = New-Object -TypeName System.Data.SqlClient.SqlConnection
@@ -712,18 +722,45 @@ Function Populate-ComputerNames
                 [pscustomobject]@{ DisplayName = $pc.ComputerName; Value = $pc.GUID }
             }
             $BuildVersions = [String]::Join('; ', @($PCResults | Select-Object -Property BuildExt | Group-Object BuildExt | Sort-Object Count -Descending | ForEach-Object { "$($_.Name.Trim()) = $($_.Count)" }) )
+            $deviceCount = if ($PCResults) { @($PCResults).Count } else { 0 }
 
             $FinalComputerNameList = [Array]($FinalComputerNameList + [pscustomobject]@{ DisplayName = "-All-"; Value = 0 })
              
             # Display results in ComputerName combobox     
             $hash.Window.Dispatcher.Invoke(
                 [action]{
+                    $selectedComp = $hash.ComputerName.SelectedItem
+                    $selectedText = $hash.ComputerName.Text
+                    $selectedName = if ($selectedComp -is [System.Management.Automation.PSCustomObject]) {
+                        $selectedComp.DisplayName
+                    } elseif (-not [string]::IsNullOrWhiteSpace($selectedText)) {
+                        $selectedText
+                    } else {
+                        $null
+                    }
+
                     $hash.ComputerName.ItemsSource = [Array]$FinalComputerNameList
                     $hash.ComputerName.DisplayMemberPath = "DisplayName"
+
+                    if ($selectedName) {
+                        $match = $FinalComputerNameList | Where-Object { $_.DisplayName -eq $selectedName } | Select-Object -First 1
+                        if ($match) {
+                            $hash.ComputerName.SelectedItem = $match
+                        } else {
+                            $hash.ComputerName.Text = $selectedName
+                        }
+                    }
+
                     $hash.BuildExt.Text = $BuildVersions
+                    if ($hash.DeviceCount) { $hash.DeviceCount.Text = $deviceCount }
             })
         }
-        catch {}
+        catch {
+            $hash.Window.Dispatcher.Invoke(
+                [action]{
+                    if ($hash.DeviceCount) { $hash.DeviceCount.Text = 0 }
+            })
+        }
         finally
         {
             if ($connection -and $connection.State -ne [System.Data.ConnectionState]::Closed)
@@ -743,8 +780,12 @@ Function Populate-ComputerNames
 	$DisabledSteps = $hash.DisabledSteps.IsChecked
     $TS = $hash.TaskSequence.SelectedItem
 
+    $filterParams = Get-FilterParams -ErrorsOnly $ErrorsOnly -SuccessCode $SuccessCode -DisabledSteps $DisabledSteps
+    $ExitCodeSanitized = $filterParams.ExitCodeSanitized
+    $DisabledStepSanitized = $filterParams.DisabledStepSanitized
+
     # Create PS instance in runspace pool and execute
-    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($SuccessCode).AddArgument($ErrorsOnly).AddArgument($DisabledSteps).AddArgument($TS)
+    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($TS)
     $PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
@@ -756,31 +797,7 @@ Function Populate-ActionNames
 
     $code = 
     {
-        param($hash,$SQLServer,$Database,$TimePeriod,$SuccessCode,$ErrorsOnly,$DisabledSteps,$TS)
-        
-        if ($ErrorsOnly -eq 'True' -or $ErrorsOnly -eq $true)
-        {
-            $ExitCode = $SuccessCode
-        }
-        else 
-        {
-            $ExitCode = 999999999999999999999999
-        }
-		
-		if ($DisabledSteps -eq 'True' -or $DisabledSteps -eq $true)
-        {
-            $DisabledStep = "''"
-        }
-        Else 
-        {
-            $DisabledStep = '11128'
-        }
-
-        $ExitCodeSanitized = if ($ExitCode -eq 999999999999999999999999) { "999999999" } else { ($ExitCode -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($ExitCodeSanitized)) { $ExitCodeSanitized = "999999999" }
-
-        $DisabledStepSanitized = if ($DisabledStep -eq "''") { "''" } else { ($DisabledStep -replace '[^0-9,-]', '') }
-        if ([string]::IsNullOrWhiteSpace($DisabledStepSanitized)) { $DisabledStepSanitized = "''" }
+        param($hash,$SQLServer,$Database,$TimePeriod,$ExitCodeSanitized,$DisabledStepSanitized,$TS)
 
         # Connect to SQL Server
         $connection = New-Object -TypeName System.Data.SqlClient.SqlConnection
@@ -820,10 +837,27 @@ Function Populate-ActionNames
             # Display results in ActionName combobox     
             $hash.Window.Dispatcher.Invoke(
                 [action]{
+                    $selectedAction = $hash.ActionName.SelectedItem
+                    $selectedActionText = $hash.ActionName.Text
+
                     $hash.ActionName.ItemsSource = [Array]$FinalActionNameList
+
+                    $targetAction = if ($selectedAction) { $selectedAction } elseif ($selectedActionText) { $selectedActionText } else { $null }
+                    if ($targetAction) {
+                        $match = $FinalActionNameList | Where-Object { $_ -eq $targetAction } | Select-Object -First 1
+                        if ($match) {
+                            $hash.ActionName.SelectedItem = $match
+                        }
+                    }
             })
         }
-        catch {}
+        catch {
+            $MyError = $_.Exception.Message
+            $hash.Window.Dispatcher.Invoke(
+                [action]{
+                    $hash.ActionOutput.Text = "[ERROR] Could not populate action names: $MyError"
+            })
+        }
         finally
         {
             if ($connection -and $connection.State -ne [System.Data.ConnectionState]::Closed)
@@ -843,8 +877,12 @@ Function Populate-ActionNames
 	$DisabledSteps = $hash.DisabledSteps.IsChecked
     $TS = $hash.TaskSequence.SelectedItem
 
+    $filterParams = Get-FilterParams -ErrorsOnly $ErrorsOnly -SuccessCode $SuccessCode -DisabledSteps $DisabledSteps
+    $ExitCodeSanitized = $filterParams.ExitCodeSanitized
+    $DisabledStepSanitized = $filterParams.DisabledStepSanitized
+
     # Create PS instance in runspace pool and execute
-    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($TimePeriod).AddArgument($SuccessCode).AddArgument($ErrorsOnly).AddArgument($DisabledSteps).AddArgument($TS)
+    $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($TimePeriod).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($TS)
     $PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
@@ -852,13 +890,23 @@ Function Populate-ActionNames
 
 function Dispose-PSInstances 
 {
-    foreach ($PSinstance in $PSInstances)
+    if ($null -eq $script:PSInstances) { return }
+    $remaining = @()
+    foreach ($PSinstance in $script:PSInstances)
     {
-        if ($PSinstance.InvocationStateInfo.State -eq 'Completed')
+        if ($null -ne $PSinstance)
         {
-            $PSinstance.Dispose()
+            if ($PSinstance.InvocationStateInfo.State -in 'Completed', 'Failed', 'Stopped')
+            {
+                $PSinstance.Dispose()
+            }
+            else
+            {
+                $remaining += $PSinstance
+            }
         }
     }
+    $script:PSInstances = $remaining
 }
 
 Function Create-Timer 
@@ -903,6 +951,14 @@ Function Update-ConfigFile
         $Get_Config.Config.sql = $hash.SQLServer.Text
         $Get_Config.Config.db = $hash.Database.Text
         $Get_Config.Config.dtformat = $hash.DTFormat.SelectedItem
+        if ($hash.GreyDisabledSteps) {
+            if (-not $Get_Config.Config.greydisabledsteps) {
+                $node = $Get_Config.CreateElement("greydisabledsteps")
+                $null = $Get_Config.Config.AppendChild($node)
+            }
+            $Get_Config.Config.greydisabledsteps = $hash.GreyDisabledSteps.IsChecked.ToString()
+            $Global:GreyDisabledSteps = $hash.GreyDisabledSteps.IsChecked
+        }
         
         $Get_Config.Save((Resolve-Path $XML_Config))
     }
@@ -917,6 +973,7 @@ Function Read-ConfigFile
 		$regsql = $Get_Config.Config.sql
         $regdb = $Get_Config.Config.db
         $regdtformat = $Get_Config.Config.dtformat
+        $reggreydisabledsteps = $Get_Config.Config.greydisabledsteps
 	}
     if (![string]::IsNullOrWhiteSpace($regsql))
     {
@@ -925,6 +982,16 @@ Function Read-ConfigFile
     if (![string]::IsNullOrWhiteSpace($regdb))
     {
         $hash.Database.Text = $regdb
+    }
+
+    if (![string]::IsNullOrWhiteSpace($reggreydisabledsteps)) {
+        $Global:GreyDisabledSteps = ($reggreydisabledsteps -notin 'False', 'false', '0')
+    } else {
+        $Global:GreyDisabledSteps = $true
+    }
+
+    if ($hash.GreyDisabledSteps) {
+        $hash.GreyDisabledSteps.IsChecked = $Global:GreyDisabledSteps
     }
 
     if (![string]::IsNullOrWhiteSpace($regdtformat))
@@ -1200,7 +1267,15 @@ th {
             $Body | Out-File -FilePath $reportPath -Force
             Invoke-Item -Path $reportPath
         }
-        catch {}
+        catch 
+        {
+            $MyError = $_.Exception.Message
+            $hash.Window.Dispatcher.Invoke(
+                [action]{
+                    $hash.Working.Content = "Error: $MyError"
+                    $hash.ReportProgress.Value = 0
+            })
+        }
         finally
         {
             if ($connection -and $connection.State -ne [System.Data.ConnectionState]::Closed)
@@ -1252,6 +1327,7 @@ Function Show-ConfigWindow
     $hash.Link1 = $hash.Window2.FindName('Link1')
     $hash.Link2 = $hash.Window2.FindName('Link2')
     $hash.DTFormat = $hash.Window2.FindName('DTFormat')
+    $hash.GreyDisabledSteps = $hash.Window2.FindName('GreyDisabledSteps')
 
     Read-ConfigFile
 
@@ -1318,6 +1394,9 @@ Function Show-ConfigWindow
 
     $hash.Window2.Add_Closed({
         Update-ConfigFile -hash $hash
+        if ($hash.TaskSequence -and $hash.TaskSequence.SelectedItem) {
+            Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
+        }
     })
 
     $Null = $hash.Window2.ShowDialog()
@@ -1371,6 +1450,20 @@ $hash.ErrorsOnly.Add_Unchecked({
 })
 
 $hash.DisabledSteps.Add_Unchecked({
+        Dispose-PSInstances
+        Stop-Timer
+        Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
+        Start-Timer
+})
+
+$hash.SkippedSteps.Add_Checked({
+        Dispose-PSInstances
+        Stop-Timer
+        Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
+        Start-Timer
+})
+
+$hash.SkippedSteps.Add_Unchecked({
         Dispose-PSInstances
         Stop-Timer
         Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
@@ -1450,12 +1543,12 @@ $hash.window.Add_Closing({[System.Windows.Forms.Application]::Exit()})
 #endregion
 
 
-# Make PowerShell Disappear #comment our for development
-if($debug){
+# Make PowerShell Disappear unless in debug mode
+if (-not $debug) {
 	$windowcode = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);' 
 	$asyncwindow = Add-Type -MemberDefinition $windowcode -name Win32ShowWindowAsync -namespace Win32Functions -PassThru 
 	$null = $asyncwindow::ShowWindowAsync((Get-Process -PID $pid).MainWindowHandle, 0)
 }
 
 $app = New-Object Windows.Application
-$app.Run($Hash.Window)
+$app.Run($hash.Window)

@@ -28,7 +28,10 @@
                     <Label Content="Display Date/Time in:" HorizontalAlignment="Left" Margin="10,95,0,0" VerticalAlignment="Top"/>
                     <ComboBox x:Name="DTFormat" HorizontalAlignment="Left" Margin="140,95,0,0" VerticalAlignment="Top" Width="206"/>
 
-                    <Label x:Name="Runasadmin" Content="Note: Please run the application with right permission to the&#xD;&#xA;script directory to save these settings!" HorizontalAlignment="Left" Margin="140,140,0,0" VerticalAlignment="Top" Height="43" Visibility="Hidden"/>
+                    <Label Content="Grey Disabled Steps:" HorizontalAlignment="Left" Margin="10,135,0,0" VerticalAlignment="Top"/>
+                    <CheckBox x:Name="GreyDisabledSteps" HorizontalAlignment="Left" Margin="140,140,0,0" VerticalAlignment="Top" IsChecked="True"/>
+
+                    <Label x:Name="Runasadmin" Content="Note: Please run the application with right permission to the&#xD;&#xA;script directory to save these settings!" HorizontalAlignment="Left" Margin="140,165,0,0" VerticalAlignment="Top" Height="43" Visibility="Hidden"/>
                 </Grid>
             </TabItem>
             <TabItem x:Name="ReportTab" Header="Summary Report">

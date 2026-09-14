@@ -55,6 +55,8 @@
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="auto" />
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" Content="Task Sequence:" HorizontalAlignment="Left" Margin="0,7,0,0" VerticalAlignment="Top" Width="96"/>
                             <ComboBox Grid.Column="1" x:Name="TaskSequence" HorizontalAlignment="Left" Margin="0,7,0,0" VerticalAlignment="Top" Width="356" Height="26"/>
@@ -62,15 +64,17 @@
                             <TextBox Grid.Column="3" x:Name="TimePeriod" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" Text="8" VerticalAlignment="Top" Width="48" TextAlignment="Center" VerticalContentAlignment="Center"/>
                             <Label Grid.Column="4" Content="Show Disabled &#xD;&#xA;Steps:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="92" Height="46"/>
                             <CheckBox Grid.Column="5" x:Name="DisabledSteps" Content="" HorizontalAlignment="Left" Margin="0,18,0,0" VerticalAlignment="Top" IsChecked="True"/>
-                            <Label Grid.Column="6" Content="Errors &#xD;&#xA;Only:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="41" Height="46"/>
-                            <CheckBox Grid.Column="7" x:Name="ErrorsOnly" Content="" HorizontalAlignment="Left" Margin="0,18,0,0" VerticalAlignment="Top"/>
-                            <Label Grid.Column="8" Content="Success &#xD;&#xA;Code:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="51" Height="46"/>
-                            <TextBox Grid.Column="9" x:Name="SuccessCode" Text="0,3010" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" VerticalContentAlignment="Center"/>
-                            <Label Grid.Column="10" Content="Error &#xD;&#xA;Count:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="11" x:Name="ErrorCount" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="37" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
-                            <Label Grid.Column="12" Content="Refresh Period &#xD;&#xA;(Minutes):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center" Height="46"/>
-                            <TextBox Grid.Column="13" x:Name="RefreshPeriod" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" Text="5" VerticalAlignment="Top" Width="33" TextAlignment="Center" VerticalContentAlignment="Center"/>
-                            <Button Grid.Column="14" x:Name="RefreshNow" Content="Refresh Now!" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top" Width="95" Height="29"/>
+                            <Label Grid.Column="6" Content="Show Skipped &#xD;&#xA;Steps:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="85" Height="46"/>
+                            <CheckBox Grid.Column="7" x:Name="SkippedSteps" Content="" HorizontalAlignment="Left" Margin="0,18,0,0" VerticalAlignment="Top" IsChecked="True"/>
+                            <Label Grid.Column="8" Content="Errors &#xD;&#xA;Only:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="41" Height="46"/>
+                            <CheckBox Grid.Column="9" x:Name="ErrorsOnly" Content="" HorizontalAlignment="Left" Margin="0,18,0,0" VerticalAlignment="Top"/>
+                            <Label Grid.Column="10" Content="Success &#xD;&#xA;Code:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Top" Width="51" Height="46"/>
+                            <TextBox Grid.Column="11" x:Name="SuccessCode" Text="0,3010" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" VerticalContentAlignment="Center"/>
+                            <Label Grid.Column="12" Content="Error &#xD;&#xA;Count:" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="13" x:Name="ErrorCount" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="37" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
+                            <Label Grid.Column="14" Content="Refresh Period &#xD;&#xA;(Minutes):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center" Height="46"/>
+                            <TextBox Grid.Column="15" x:Name="RefreshPeriod" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" Text="5" VerticalAlignment="Top" Width="33" TextAlignment="Center" VerticalContentAlignment="Center"/>
+                            <Button Grid.Column="16" x:Name="RefreshNow" Content="Refresh Now!" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top" Width="95" Height="29"/>
                         </Grid>
                     </Grid>
                     <Grid Margin="0,10,0,0" VerticalAlignment="Top">
@@ -82,13 +86,17 @@
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="auto" />
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" Content="Action Name:" HorizontalAlignment="Left" Margin="0,7,0,0" VerticalAlignment="Top" Width="96"/>
                             <ComboBox Grid.Column="1" x:Name="ActionName" HorizontalAlignment="Left" Margin="0,7,0,0" VerticalAlignment="Top" Width="356" Height="26"/>
                             <Label Grid.Column="2" Content="ComputerName:" HorizontalAlignment="Left" Margin="0,8,0,0" VerticalAlignment="Top"/>
                             <ComboBox Grid.Column="3" x:Name="ComputerName" HorizontalAlignment="Left" Margin="0,7,0,0" VerticalAlignment="Top" Width="160" Height="26" IsEditable="True"/>
-                            <Label Grid.Column="4" Content="Build Versions:" HorizontalAlignment="Left" Margin="0,8,0,0" VerticalAlignment="Top"/>
-                            <TextBox Grid.Column="5" x:Name="BuildExt" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" VerticalAlignment="Top" Width="220" VerticalContentAlignment="Center" IsReadOnly="True"/>
+                            <Label Grid.Column="4" Content="Device Count:" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
+                            <TextBox Grid.Column="5" x:Name="DeviceCount" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="37" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
+                            <Label Grid.Column="6" Content="Build Versions:" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
+                            <TextBox Grid.Column="7" x:Name="BuildExt" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" VerticalAlignment="Top" Width="220" VerticalContentAlignment="Center" IsReadOnly="True"/>
                         </Grid>
                     </Grid>
                 </StackPanel>
@@ -102,7 +110,7 @@
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding Path=IsSkipped}" Value="True">
+                                <DataTrigger Binding="{Binding Path=IsGreyed}" Value="True">
                                     <Setter Property="Background" Value="#FFE4E4E4"/>
                                     <Setter Property="Foreground" Value="#FF777777"/>
                                 </DataTrigger>

@@ -1,18 +1,31 @@
 # ConfigMgr-Task-Sequence-Monitor
-A tool to monitor and report on task sequence executions in ConfigMgr
 
-Changelog:
+A tool to monitor and report on task sequence executions in ConfigMgr.
 
-  1.9:
-  - Security, performance, and code quality improvements
-  - MDT Options removed
-  - UI/layout tweaks
-  - Disabled steps now shaded grey
+## Fork & Acknowledgments
 
-  1.8:
-  - Changed Hostname to GUID to select specific device. Before unknown devices could not be selected separately.
-    
-  1.7:
-  - Using XML instead of Registry
-  - Exported XAML Part
-  - Changed SQL queries to grab more information
+This repository is a **fork of a fork**:
+* **Current Repository:** [andrewblunt/ConfigMgr-Task-Sequence-Monitor](https://github.com/andrewblunt/ConfigMgr-Task-Sequence-Monitor)
+* **Upstream Fork:** [stephannn/ConfigMgr-Task-Sequence-Monitor](https://github.com/stephannn/ConfigMgr-Task-Sequence-Monitor)
+* **Original Project:** Created by **Trevor Jones** / [SMSAgent Software](https://github.com/SMSAgentSoftware/ConfigMgr-Task-Sequence-Monitor)
+
+Special thanks and full credit to **Trevor Jones** (SMSAgent) for developing the original tool, and **stephannn** for upstream contributions and enhancements.
+
+## Changelog
+
+### 1.9
+- Security, performance, and code quality improvements
+- MDT Options removed
+- UI/layout tweaks
+- Added "Show Skipped Steps" toggle option
+- Added "Grey Disabled Steps" setting in Settings window
+- Added device count display next to ComputerName drop-down
+
+### 1.8
+- Changed Hostname to GUID to select specific device. Before unknown devices could not be selected separately.
+
+### 1.7
+- Using XML instead of Registry
+- Exported XAML Part
+- Changed SQL queries to grab more information
+
