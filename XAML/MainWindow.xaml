@@ -108,9 +108,43 @@
         <GroupBox Grid.Row="1" Header="Result" Margin="5,10,0,0" VerticalAlignment="Stretch">
             <Grid Margin="0,0,0,0">
                 <DataGrid x:Name="DataGrid" AutoGenerateColumns="False" Margin="10,0,10,0" VerticalAlignment="Stretch" Height="Auto" IsReadOnly="True" HorizontalGridLinesBrush="#FF297566" VerticalGridLinesBrush="#FF489183">
+                    <!-- Keep the selected row readable with the MahApps theme.  The theme's
+                         default selected-cell brush is white, which hides the row content. -->
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+                            <Style.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Background" Value="#FF69969C"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </MultiTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#FF012E34"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Resources>
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Style.Triggers>
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                        <Condition Property="IsSelected" Value="False"/>
+                                    </MultiTrigger.Conditions>
+                                    <Setter Property="Background" Value="#FF69969C"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </MultiTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#FF012E34"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
                                 <DataTrigger Binding="{Binding Path=IsGreyed}" Value="True">
                                     <Setter Property="Background" Value="#FFE4E4E4"/>
                                     <Setter Property="Foreground" Value="#FF777777"/>
@@ -129,6 +163,19 @@
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                     <Setter Property="VerticalContentAlignment" Value="Center"/>
                                     <Setter Property="Padding" Value="0"/>
+                                    <Style.Triggers>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                                <Condition Property="IsSelected" Value="False"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="Background" Value="#FF69969C"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#FF012E34"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                    </Style.Triggers>
                                 </Style>
                             </DataGridTemplateColumn.CellStyle>
                             <DataGridTemplateColumn.CellTemplate>

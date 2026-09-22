@@ -95,9 +95,23 @@ if (Test-Path $buildExtCsvPath) {
 $hash = [hashtable]::Synchronized(@{})
 $reader = (New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $xaml)
 $hash.Window = [Windows.Markup.XamlReader]::Load( $reader )
-$global:PSInstances = @()
+$script:PSInstances = @()
+$script:LogPath = Join-Path $env:TEMP 'ConfigMgrTSMonitor.log'
 $Global:Timezones = @()
 $hash.Results = @()
+
+function Write-TSMonitorLog
+{
+    param([string]$Message)
+    try
+    {
+        $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'
+        [System.IO.File]::AppendAllText($script:LogPath, "[$timestamp] $Message`r`n")
+    }
+    catch { }
+}
+
+Write-TSMonitorLog 'Application started.'
 
 $hash.TaskSequence = $hash.Window.FindName('TaskSequence')
 $hash.TimePeriod = $hash.Window.FindName('TimePeriod')
@@ -116,6 +130,17 @@ $hash.ActionOutput = $hash.Window.FindName('ActionOutput')
 $hash.SettingsButton = $hash.Window.FindName('SettingsButton')
 $hash.ReportButton = $hash.Window.FindName('ReportButton')
 $hash.ErrorCount = $hash.Window.FindName('ErrorCount')
+
+$hash.Window.Dispatcher.Add_UnhandledException({
+    param($sender, $eventArgs)
+    $exception = $eventArgs.Exception
+    Write-TSMonitorLog "Unhandled UI exception: $($exception.ToString())"
+    $eventArgs.Handled = $true
+    if ($hash.ActionOutput)
+    {
+        $hash.ActionOutput.Text = "[ERROR] The UI encountered an unexpected error. See $script:LogPath"
+    }
+})
 
 $gridIco1 = Join-Path $env:ProgramFiles "SMSAgent\ConfigMgr Task Sequence Monitor\Grid.ico"
 if (Test-Path -Path $gridIco1)
@@ -319,6 +344,8 @@ Function Get-TaskSequenceList
             $result = $command.ExecuteReader()
             $table = New-Object -TypeName 'System.Data.DataTable'
             $table.Load($result)
+            $result.Dispose()
+            $command.Dispose()
 
             # Load data into list shared with the UI runspace
             $taskSequences = foreach ($Row in $table.Rows)
@@ -359,7 +386,7 @@ Function Get-TaskSequenceList
     $Database  = $hash.Database.Text
 
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database)
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -492,6 +519,8 @@ Function Get-TaskSequenceData
             $result = $command.ExecuteReader()
             $table = New-Object -TypeName 'System.Data.DataTable'
             $table.Load($result)
+            $result.Dispose()
+            $command.Dispose()
 
             $commandErr = $connection.CreateCommand()
             $commandErr.CommandText = $ErrQuery
@@ -502,6 +531,8 @@ Function Get-TaskSequenceData
             $erresult = $commandErr.ExecuteReader()
             $errtable = New-Object -TypeName 'System.Data.DataTable'
             $errtable.Load($erresult)
+            $erresult.Dispose()
+            $commandErr.Dispose()
 
             if ($table.Rows.Count -lt 1)
             {
@@ -635,7 +666,7 @@ Function Get-TaskSequenceData
     # Create PS instance in runspace pool and execute
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($SuccessCode).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($SkippedSteps).AddArgument($GreyDisabledSteps).AddArgument($ComputerName).AddArgument($ActionName).AddArgument($TS).AddArgument($DTFormat)
 
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -656,12 +687,15 @@ Function Populate-ActionOutput
         }
     }
 
-    # Set variables from Hash table
-    $Record = $hash.DataGrid.SelectedItem.Record
+    # Set variables from Hash table. SelectionChanged also fires when the grid
+    # is cleared, so there may be no selected item.
+    $selectedItem = $hash.DataGrid.SelectedItem
+    if ($null -eq $selectedItem) { return }
+    $Record = $selectedItem.Record
 
     # Create PS instance in runspace pool and execute
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($Record)
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -707,6 +741,8 @@ Function Populate-ComputerNames
             $result = $command.ExecuteReader()
             $table = New-Object -TypeName 'System.Data.DataTable'
             $table.Load($result)
+            $result.Dispose()
+            $command.Dispose()
              
             # Gather results into PS object    
             $PCResults = foreach ($Row in $table.Rows)
@@ -786,7 +822,7 @@ Function Populate-ComputerNames
 
     # Create PS instance in runspace pool and execute
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($BuildExtVersionSql).AddArgument($TimePeriod).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($TS)
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -825,6 +861,8 @@ Function Populate-ActionNames
             $result = $command.ExecuteReader()
             $table = New-Object -TypeName 'System.Data.DataTable'
             $table.Load($result)
+            $result.Dispose()
+            $command.Dispose()
              
             # Gather results into PS object    
             $PCResults = foreach ($Row in $table.Rows)
@@ -883,7 +921,7 @@ Function Populate-ActionNames
 
     # Create PS instance in runspace pool and execute
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($TimePeriod).AddArgument($ExitCodeSanitized).AddArgument($DisabledStepSanitized).AddArgument($TS)
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -892,21 +930,34 @@ function Dispose-PSInstances
 {
     if ($null -eq $script:PSInstances) { return }
     $remaining = @()
+    $running = @()
     foreach ($PSinstance in $script:PSInstances)
     {
         if ($null -ne $PSinstance)
         {
             if ($PSinstance.InvocationStateInfo.State -in 'Completed', 'Failed', 'Stopped')
             {
-                $PSinstance.Dispose()
+                try { $PSinstance.Dispose() } catch { }
             }
             else
             {
-                $remaining += $PSinstance
+                $running += $PSinstance
             }
         }
     }
     $script:PSInstances = $remaining
+
+    if ($running.Count -gt 0)
+    {
+        $cleanup = {
+            foreach ($PSinstance in $running)
+            {
+                try { $PSinstance.Stop() } catch { }
+                finally { try { $PSinstance.Dispose() } catch { } }
+            }
+        }.GetNewClosure()
+        [System.Threading.Tasks.Task]::Run([Action]$cleanup) | Out-Null
+    }
 }
 
 Function Create-Timer 
@@ -917,12 +968,22 @@ Function Create-Timer
         $global:Timer.Dispose()
     }
     $global:Timer = New-Object -TypeName System.Windows.Forms.Timer
-    $timer.Interval = [int]$hash.RefreshPeriod.Text * 60000
+    $timer.Interval = Get-RefreshIntervalMilliseconds
     $timer.add_Tick({
         Populate-ComputerNames -hash $hash -RunspacePool $RunspacePool
         Populate-ActionNames -hash $hash -RunspacePool $RunspacePool
         Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
     })
+}
+
+Function Get-RefreshIntervalMilliseconds
+{
+    $minutes = 0
+    if (-not [int]::TryParse([string]$hash.RefreshPeriod.Text, [ref]$minutes) -or $minutes -lt 1)
+    {
+        $minutes = 5
+    }
+    return $minutes * 60000
 }
 
 Function Start-Timer 
@@ -1056,6 +1117,8 @@ Function Generate-Report
             $reader = $command.ExecuteReader()
             $table = New-Object -TypeName 'System.Data.DataTable'
             $table.Load($reader)
+            $reader.Dispose()
+            $command.Dispose()
 
             $hash.Window.Dispatcher.Invoke(
                 [action]{
@@ -1098,6 +1161,8 @@ Function Generate-Report
                 $reader = $command.ExecuteReader()
                 $subTable = New-Object -TypeName 'System.Data.DataTable'
                 $subTable.Load($reader)
+                $reader.Dispose()
+                $command.Dispose()
 
                 # A device can have status rows in the selected period but no
                 # matching start/finish record. Do not abort the whole report
@@ -1197,6 +1262,8 @@ Function Generate-Report
             $reader = $command.ExecuteReader()
             $errTable = New-Object -TypeName 'System.Data.DataTable'
             $errTable.Load($reader)
+            $reader.Dispose()
+            $command.Dispose()
 
             if ($DTFormat -ne 'UTC')
             {
@@ -1321,7 +1388,7 @@ th {
 
     # Create PS instance in runspace pool and execute
     $PSinstance = [powershell]::Create().AddScript($code).AddArgument($hash).AddArgument($SQLServer).AddArgument($Database).AddArgument($StartDate).AddArgument($EndDate).AddArgument($TS).AddArgument($DTFormat)
-    $PSInstances += $PSinstance
+    $script:PSInstances += $PSinstance
     $PSinstance.RunspacePool = $RunspacePool
     $PSinstance.BeginInvoke()
 }
@@ -1505,7 +1572,7 @@ $hash.RefreshNow.Add_Click({
         Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
         Populate-ComputerNames -hash $hash -RunspacePool $RunspacePool
 		Populate-ActionNames -hash $hash -RunspacePool $RunspacePool
-        $timer.Interval = [int]$hash.RefreshPeriod.Text * 60000
+        $timer.Interval = Get-RefreshIntervalMilliseconds
         Start-Timer
 })
 
@@ -1536,14 +1603,14 @@ $hash.TimePeriod.Add_KeyDown({
             Stop-Timer
             Get-TaskSequenceData -hash $hash -RunspacePool $RunspacePool
             Populate-ComputerNames -hash $hash -RunspacePool $RunspacePool
-            $timer.Interval = [int]$hash.RefreshPeriod.Text * 60000
+            $timer.Interval = Get-RefreshIntervalMilliseconds
             Start-Timer
         }
 })
 
 $hash.RefreshPeriod.Add_TextChanged({
         Stop-Timer
-        $timer.Interval = [int]$hash.RefreshPeriod.Text * 60000
+        $timer.Interval = Get-RefreshIntervalMilliseconds
         Start-Timer
 })
 
