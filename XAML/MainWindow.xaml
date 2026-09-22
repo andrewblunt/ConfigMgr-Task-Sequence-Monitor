@@ -74,13 +74,13 @@
                             <TextBox Grid.Column="13" x:Name="ErrorCount" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="37" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
                             <Label Grid.Column="14" Content="Refresh Period &#xD;&#xA;(Minutes):" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center" Height="46"/>
                             <TextBox Grid.Column="15" x:Name="RefreshPeriod" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" Text="5" VerticalAlignment="Top" Width="33" TextAlignment="Center" VerticalContentAlignment="Center"/>
-                            <Button Grid.Column="16" x:Name="RefreshNow" Content="Refresh Now!" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top" Width="95" Height="29"/>
                         </Grid>
                     </Grid>
                     <Grid Margin="0,10,0,0" VerticalAlignment="Top">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="auto" />
+                            <ColumnDefinition Width="auto" />
+                            <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
                                 <ColumnDefinition Width="auto" />
@@ -97,6 +97,7 @@
                             <TextBox Grid.Column="5" x:Name="DeviceCount" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="37" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
                             <Label Grid.Column="6" Content="Build Versions:" HorizontalAlignment="Left" Margin="10,8,0,0" VerticalAlignment="Top"/>
                             <TextBox Grid.Column="7" x:Name="BuildExt" HorizontalAlignment="Left" Height="26" Margin="0,8,0,0" VerticalAlignment="Top" Width="220" VerticalContentAlignment="Center" IsReadOnly="True"/>
+                            <Button Grid.Column="8" x:Name="RefreshNow" Content="Refresh Now!" HorizontalAlignment="Left" Margin="10,7,0,0" VerticalAlignment="Top" Width="95" Height="29"/>
                         </Grid>
                     </Grid>
                 </StackPanel>
@@ -114,6 +115,10 @@
                                     <Setter Property="Background" Value="#FFE4E4E4"/>
                                     <Setter Property="Foreground" Value="#FF777777"/>
                                 </DataTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#FF3399FF"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
                             </Style.Triggers>
                         </Style>
                     </DataGrid.RowStyle>

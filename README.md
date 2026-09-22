@@ -13,6 +13,11 @@ Special thanks and full credit to **Trevor Jones** (SMSAgent) for developing the
 
 ## Changelog
 
+### 1.9.1
+- Improved UI responsiveness during refresh operations
+- Improved report generation reliability with incomplete data
+- Restored consistent DataGrid selection highlighting
+
 ### 1.9
 - Security, performance, and code quality improvements
 - MDT Options removed
@@ -28,4 +33,3 @@ Special thanks and full credit to **Trevor Jones** (SMSAgent) for developing the
 - Using XML instead of Registry
 - Exported XAML Part
 - Changed SQL queries to grab more information
-

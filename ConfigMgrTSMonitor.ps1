@@ -727,7 +727,7 @@ Function Populate-ComputerNames
             $FinalComputerNameList = [Array]($FinalComputerNameList + [pscustomobject]@{ DisplayName = "-All-"; Value = 0 })
              
             # Display results in ComputerName combobox     
-            $hash.Window.Dispatcher.Invoke(
+                $hash.Window.Dispatcher.Invoke(
                 [action]{
                     $selectedComp = $hash.ComputerName.SelectedItem
                     $selectedText = $hash.ComputerName.Text
@@ -1099,7 +1099,16 @@ Function Generate-Report
                 $subTable = New-Object -TypeName 'System.Data.DataTable'
                 $subTable.Load($reader)
 
-                if ($subTable.Rows[0].Start.GetType().Name -eq 'DBNull')
+                # A device can have status rows in the selected period but no
+                # matching start/finish record. Do not abort the whole report
+                # when that happens.
+                if ($subTable.Rows.Count -eq 0)
+                {
+                    continue
+                }
+
+                $startValue = $subTable.Rows[0].Start
+                if ($null -eq $startValue -or $startValue -is [System.DBNull])
                 {
                     $Start = ''
                 }
@@ -1107,15 +1116,16 @@ Function Generate-Report
                 {
                     if ($DTFormat -eq 'UTC')
                     {
-                        $Start = $subTable.Rows[0].Start
+                        $Start = $startValue
                     }
                     Else 
                     {
-                        $Start = [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$subTable.Rows[0].Start, [System.TimeZoneInfo]::Local)
+                        $Start = [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$startValue, [System.TimeZoneInfo]::Local)
                     }
                 }
 
-                if ($subTable.Rows[0].Finish.GetType().Name -eq 'DBNull')
+                $finishValue = $subTable.Rows[0].Finish
+                if ($null -eq $finishValue -or $finishValue -is [System.DBNull])
                 {
                     $Finish = ''
                 }
@@ -1123,11 +1133,11 @@ Function Generate-Report
                 {
                     if ($DTFormat -eq 'UTC')
                     {
-                        $Finish = $subTable.Rows[0].Finish
+                        $Finish = $finishValue
                     }
                     Else 
                     {
-                        $Finish = [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$subTable.Rows[0].Finish, [System.TimeZoneInfo]::Local)
+                        $Finish = [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$finishValue, [System.TimeZoneInfo]::Local)
                     }
                 }
 
@@ -1152,7 +1162,7 @@ Function Generate-Report
 
             $Results = $ResultsList | Sort-Object -Property ComputerName
 
-            $hash.Window.Dispatcher.Invoke(
+                $hash.Window.Dispatcher.Invoke(
                 [action]{
                     $hash.ReportProgress.Value = 50
             })
@@ -1190,18 +1200,21 @@ Function Generate-Report
 
             if ($DTFormat -ne 'UTC')
             {
-                $newdates = foreach ($item in $errTable.Rows.ExecutionTime)
+                foreach ($row in $errTable.Rows)
                 {
-                    [System.TimeZoneInfo]::ConvertTimeFromUtc([datetime]$item, [System.TimeZoneInfo]::Local)
-                }
-                $i = -1
-                $errTable.Rows.ExecutionTime | ForEach-Object -Process {
-                    $i ++
-                    $errTable.Rows[$i].ExecutionTime = $newdates[$i]
+                    $executionTime = $row['ExecutionTime']
+                    if ($null -eq $executionTime -or $executionTime -is [System.DBNull]) {
+                        continue
+                    }
+
+                    $row['ExecutionTime'] = [System.TimeZoneInfo]::ConvertTimeFromUtc(
+                        [datetime]$executionTime,
+                        [System.TimeZoneInfo]::Local
+                    )
                 }
             }
 
-            $hash.Window.Dispatcher.Invoke(
+                $hash.Window.Dispatcher.Invoke(
                 [action]{
                     $hash.ReportProgress.Value = 80
             })
@@ -1270,10 +1283,21 @@ th {
         catch 
         {
             $MyError = $_.Exception.Message
+            $errorDetails = $_ | Format-List * -Force | Out-String
+            $errorLogPath = Join-Path $env:TEMP 'ConfigMgrTSMonitor-ReportError.log'
+            $errorDetails | Set-Content -Path $errorLogPath -Encoding UTF8
             $hash.Window.Dispatcher.Invoke(
                 [action]{
                     $hash.Working.Content = "Error: $MyError"
+                    $hash.Working.ToolTip = "Full error details were written to: $errorLogPath`n`n$errorDetails"
                     $hash.ReportProgress.Value = 0
+                    [System.Windows.MessageBox]::Show(
+                        $hash.Window2,
+                        "Report generation failed:`n`n$MyError`n`n$errorDetails",
+                        'ConfigMgr Task Sequence Monitor',
+                        [System.Windows.MessageBoxButton]::OK,
+                        [System.Windows.MessageBoxImage]::Error
+                    ) | Out-Null
             })
         }
         finally
@@ -1552,3 +1576,5 @@ if (-not $debug) {
 
 $app = New-Object Windows.Application
 $app.Run($hash.Window)
+
+
