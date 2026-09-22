@@ -1,6 +1,0 @@
-<Config>
-  <sql>sqlserver</sql>
-  <db>cm_db1</db>
-  <dtformat>W. Europe Standard Time</dtformat>
-  <greydisabledsteps>True</greydisabledsteps>
-</Config>

@@ -1,0 +1,6 @@
+<Config>
+  <sql>&lt;SQLServer\Instance&gt;</sql>
+  <db>&lt;Database&gt;</db>
+  <dtformat>UTC</dtformat>
+  <greydisabledsteps>True</greydisabledsteps>
+</Config>

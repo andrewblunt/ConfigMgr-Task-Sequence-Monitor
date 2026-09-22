@@ -70,9 +70,11 @@
     <Version>
       <Value>2.0</Value>
       <Changes>
-        <Change>tbc...</Change>
+        <Change>Modernized the native WPF interface and visual styling</Change>
+        <Change>Improved refresh and report reliability</Change>
+        <Change>Removed the MahApps.Metro runtime dependency</Change>
       </Changes>
-      <ReleaseDate>2016-May-01</ReleaseDate>
+      <ReleaseDate>2026-09-22</ReleaseDate>
     </Version>
   </Versions>
 </ConfigMgr_Task_Sequence_Monitor>

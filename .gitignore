@@ -1,0 +1,21 @@
+# Logs and diagnostic output
+*.log
+
+# Local machine configuration
+Config.xml
+
+# Generated reports and temporary output
+TSReport.htm
+*.tmp
+*.temp
+
+# PowerShell and editor artefacts
+*.bak
+*.user
+*.suo
+.vs/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini

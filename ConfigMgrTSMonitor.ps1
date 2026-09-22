@@ -34,36 +34,6 @@ namespace System
 Add-Type -TypeDefinition $code
 
 
-
-# Mahapps Library
-$mahAppsPath1 = Join-Path $env:ProgramFiles "SMSAgent\ConfigMgr Task Sequence Monitor\MahApps.Metro.dll"
-$interactivityPath1 = Join-Path $env:ProgramFiles "SMSAgent\ConfigMgr Task Sequence Monitor\System.Windows.Interactivity.dll"
-
-if (Test-Path -Path $mahAppsPath1)
-{
-    [System.Reflection.Assembly]::LoadFrom($mahAppsPath1) | Out-Null
-    [System.Reflection.Assembly]::LoadFrom($interactivityPath1) | Out-Null
-}
-
-$programFilesX86 = ${env:ProgramFiles(x86)}
-if ($programFilesX86) {
-    $mahAppsPath2 = Join-Path $programFilesX86 "SMSAgent\ConfigMgr Task Sequence Monitor\MahApps.Metro.dll"
-    $interactivityPath2 = Join-Path $programFilesX86 "SMSAgent\ConfigMgr Task Sequence Monitor\System.Windows.Interactivity.dll"
-    if (Test-Path -Path $mahAppsPath2)
-    {
-        [System.Reflection.Assembly]::LoadFrom($mahAppsPath2) | Out-Null
-        [System.Reflection.Assembly]::LoadFrom($interactivityPath2) | Out-Null
-    }
-}
-
-$mahAppsPathLocal = Join-Path $currentLocation "MahApps.Metro.dll"
-$interactivityPathLocal = Join-Path $currentLocation "System.Windows.Interactivity.dll"
-if (Test-Path -Path $mahAppsPathLocal)
-{
-    [System.Reflection.Assembly]::LoadFrom($mahAppsPathLocal) | Out-Null
-    [System.Reflection.Assembly]::LoadFrom($interactivityPathLocal) | Out-Null
-}
-
 #endregion
 
 #region Constants
@@ -1006,6 +976,13 @@ Function Update-ConfigFile
 {
     param($hash)
     $XML_Config = Join-Path $currentLocation "Config.xml"
+    if (-not (Test-Path $XML_Config)) {
+        $exampleConfig = Join-Path $currentLocation "Config.example.xml"
+        if (Test-Path $exampleConfig) {
+            Copy-Item -LiteralPath $exampleConfig -Destination $XML_Config
+        }
+    }
+
     If (Test-Path $XML_Config){
         [xml]$Get_Config = Get-Content $XML_Config
 
@@ -1642,6 +1619,22 @@ if (-not $debug) {
 }
 
 $app = New-Object Windows.Application
+$app.DispatcherUnhandledException.Add({
+    param($sender, $eventArgs)
+
+    $details = $eventArgs.Exception.ToString()
+    try {
+        $details | Set-Content -Path (Join-Path $env:TEMP 'ConfigMgrTSMonitor-UIError.log') -Encoding UTF8
+    } catch {}
+
+    [System.Windows.MessageBox]::Show(
+        $details,
+        'ConfigMgr Task Sequence Monitor - UI error',
+        [System.Windows.MessageBoxButton]::OK,
+        [System.Windows.MessageBoxImage]::Error
+    ) | Out-Null
+    $eventArgs.Handled = $true
+})
 $app.Run($hash.Window)
 
 

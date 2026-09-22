@@ -2,6 +2,10 @@
 
 A tool to monitor and report on task sequence executions in ConfigMgr.
 
+## Configuration
+
+`Config.example.xml` is the tracked template. The application creates the local `Config.xml` when settings are saved; the local file is ignored by Git.
+
 ## Fork & Acknowledgments
 
 This repository is a **fork of a fork**:
@@ -12,6 +16,13 @@ This repository is a **fork of a fork**:
 Special thanks and full credit to **Trevor Jones** (SMSAgent) for developing the original tool, and **stephannn** for upstream contributions and enhancements.
 
 ## Changelog
+
+### 2.0
+- Modernized the native WPF interface and visual styling
+- Improved refresh and report reliability
+- Removed the MahApps.Metro runtime dependency
+- Added a Git-ignored local configuration file with a tracked example template
+- Improved window sizing, selection highlighting, and general UI responsiveness
 
 ### 1.9.1
 - Improved UI responsiveness during refresh operations
